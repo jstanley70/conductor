@@ -717,7 +717,6 @@ public class TestDeciderService {
         assertFalse(deciderOutcome.isComplete);
     }
 
-
     @Test
     public void testGetTasksToBeScheduled() throws Exception {
         WorkflowDef workflowDef = createLinearWorkflow();
@@ -743,6 +742,24 @@ public class TestDeciderService {
         assertNotNull(tasksToBeScheduled);
         assertEquals(1, tasksToBeScheduled.size());
         assertEquals("s2", tasksToBeScheduled.get(0).getReferenceTaskName());
+    }
+
+    @Test
+    public void testCheckResponseTimeOut() throws Exception {
+        TaskDef taskDef = new TaskDef();
+        taskDef.setName("test_rt");
+        taskDef.setResponseTimeoutSeconds(10);
+
+        Task task = new Task();
+        task.setTaskDefName("test_rt");
+        task.setStatus(Status.IN_PROGRESS);
+        task.setTaskId("aa");
+        task.setUpdateTime(System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(11));
+
+        deciderService.checkResponseTimeOut(taskDef, task);
+        assertNotNull(task);
+        assertEquals(Status.TIMED_OUT, task.getStatus());
+        assertNotNull(task.getReasonForIncompletion());
     }
 
     private WorkflowDef createConditionalWF() throws Exception {

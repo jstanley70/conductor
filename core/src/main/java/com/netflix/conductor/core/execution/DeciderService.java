@@ -144,12 +144,10 @@ public class DeciderService {
             }
 
             TaskDef taskDefinition = metadataDAO.getTaskDef(pendingTask.getTaskDefName());
-            if (taskDefinition != null) {//QQ what happens when the task definition is null at this time ??
+            if (taskDefinition != null) {
                 checkForTimeout(taskDefinition, pendingTask);
-                // If the task has not been updated for "responseTimeout" then rescheduled it.
-                if (isResponseTimedOut(taskDefinition, pendingTask)) {
-                    outcome.tasksToBeRequeued.add(pendingTask);
-                }
+                // If the task has not been updated for "responseTimeout" then reschedule it
+                checkResponseTimeOut(taskDefinition, pendingTask);
             }
 
             if (!pendingTask.getStatus().isSuccessful()) {
@@ -399,16 +397,16 @@ public class DeciderService {
     }
 
     @VisibleForTesting
-    boolean isResponseTimedOut(TaskDef taskDefinition, Task task) {
+    void checkResponseTimeOut(TaskDef taskDefinition, Task task) {
 
         logger.debug("Evaluating responseTimeOut for Task: {}, with Task Definition: {} ", task, taskDefinition);
 
         if (taskDefinition == null) {
             logger.warn("missing task type : {}, workflowId= {}", task.getTaskDefName(), task.getWorkflowInstanceId());
-            return false;
+            return;
         }
         if (task.getStatus().isTerminal() || !task.getStatus().equals(IN_PROGRESS) || taskDefinition.getResponseTimeoutSeconds() == 0) {
-            return false;
+            return;
         }
 
         long responseTimeout = 1000 * taskDefinition.getResponseTimeoutSeconds();
@@ -418,12 +416,14 @@ public class DeciderService {
         if (noResponseTime < responseTimeout) {
             logger.debug("Current responseTime: {} has not exceeded the configured responseTimeout of {} " +
                     "for the Task: {} with Task Definition: {}", noResponseTime, responseTimeout, task, taskDefinition);
-            return false;
+            return;
         }
 
         Monitors.recordTaskResponseTimeout(task.getTaskDefName());
-        logger.debug("responseTimeout of {} exceeded for the Task: {} with Task Definition: {}", responseTimeout, task, taskDefinition);
-        return true;
+        String reason = "responseTimeout: " + responseTimeout + " exceeded for the taskId: " + task.getTaskId() + " with Task Definition: " + taskDefinition;
+        logger.debug(reason);
+        task.setStatus(TIMED_OUT);
+        task.setReasonForIncompletion(reason);
     }
 
     public List<Task> getTasksToBeScheduled(WorkflowDef def, Workflow workflow,
