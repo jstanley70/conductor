@@ -29,6 +29,7 @@ import javax.inject.Singleton;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,11 +55,20 @@ import com.sun.jersey.oauth.signature.OAuthSecrets;
 /**
  * @author Viren
  * Task that enables calling another http endpoint as part of its execution
+ * 
+ * Basic support is to fail responses < 200 and > 299
+ * If you desire additional support for any specific response code  
+ * set map input_Parameter:status_support, keys are httpStatuses and value is TaskStatus to be set
+ * Use a decision tree task after completion to handle specific httpStatuses
+ * input_Parameter:alternate_workflow can be used to indicated default workflow for httpStatuses that are invoked.
  */
 @Singleton
 public class HttpTask extends WorkflowSystemTask {
 
 	public static final String REQUEST_PARAMETER_NAME = "http_request";
+	public static final String STATUS_SUPPORT_PARAMETER_NAME = "status_support";
+	public static final String ALTERNATE_WORK_FLOW_PARAMETER_NAME = "alternate_workflow";
+
 	
 	static final String MISSING_REQUEST = "Missing HTTP request. Task input MUST have a '" + REQUEST_PARAMETER_NAME + "' key wiht HttpTask.Input as value. See documentation for HttpTask for required input parameters";
 
@@ -120,6 +130,9 @@ public class HttpTask extends WorkflowSystemTask {
 		try {
 			
 			HttpResponse response = httpCall(input);
+			if(responseHandeled(task, response)) {
+			     return;
+			}
 			logger.info("response {}, {}", response.statusCode, response.body);
 			if(response.statusCode > 199 && response.statusCode < 300) {
 				task.setStatus(Status.COMPLETED);
@@ -221,6 +234,34 @@ public class HttpTask extends WorkflowSystemTask {
 			logger.error(jpe.getMessage(), jpe);
 			return json;
 		}
+	}
+	
+	 /*** Handles Response based on specific supported httpStatusCodes
+	*  returns true if response has been handled.
+	*
+	* @param task
+	* @param statusSupportValues
+	* @param response
+	* @return
+	*/
+	
+	public boolean responseHandeled(Task task, HttpResponse response) {
+		Object statusSupport = task.getInputData().get(STATUS_SUPPORT_PARAMETER_NAME);
+		if(statusSupport == null)
+		    return false;
+		Map<String, String> statusSupportValues = om.convertValue(statusSupport, HashMap.class);
+		if (statusSupportValues.containsKey(Integer.toString(response.statusCode))) {
+			String values=statusSupportValues.get(Integer.toString(response.statusCode));
+			Status status = Status.valueOf(statusSupportValues.get(Integer.toString(response.statusCode)));
+			task.setStatus(status);
+			if (response != null) {
+				 task.getOutputData().put("response", response.asMap());
+			}
+			task.getOutputData().put("alternateWorkflow", (String)task.getInputData().get(ALTERNATE_WORK_FLOW_PARAMETER_NAME));
+			task.getOutputData().put("httpStatus", Integer.toString(response.statusCode));
+			return true;
+		}
+		return false;
 	}
 
 	@Override
