@@ -27,7 +27,6 @@ import com.netflix.conductor.common.metadata.workflow.WorkflowDef;
 import com.netflix.conductor.common.metadata.workflow.WorkflowTask;
 import com.netflix.conductor.common.metadata.workflow.WorkflowTask.Type;
 import com.netflix.conductor.common.run.Workflow;
-import com.netflix.conductor.contribs.http.HttpTask.Input;
 import com.netflix.conductor.core.config.Configuration;
 import com.netflix.conductor.core.execution.DeciderService;
 import com.netflix.conductor.core.execution.ParametersUtils;
@@ -44,7 +43,7 @@ import com.netflix.conductor.core.execution.mapper.TaskMapper;
 import com.netflix.conductor.core.execution.mapper.UserDefinedTaskMapper;
 import com.netflix.conductor.core.execution.mapper.WaitTaskMapper;
 import com.netflix.conductor.dao.MetadataDAO;
-
+import com.netflix.conductor.contribs.http.HttpTask.Input;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
@@ -344,6 +343,8 @@ public class TestHttpTask {
  	@Test
     public void testRequestHandled() throws Exception {
         Task task = new Task();
+        Input input = new Input();
+        task.getInputData().put(HttpTask.REQUEST_PARAMETER_NAME, input);
         JsonNode status = objectMapper.readTree("{\"400\":\"COMPLETED\"}");
         task.getInputData().put(HttpTask.HTTP_STATUS_OVERIDE_PARAMETER_NAME, status);
         HttpTask.HttpResponse response = new HttpTask.HttpResponse();
@@ -357,6 +358,8 @@ public class TestHttpTask {
     @Test
     public void testRequestNotHandled() throws Exception {
         Task task = new Task();
+        Input input = new Input();
+        task.getInputData().put(HttpTask.REQUEST_PARAMETER_NAME, input);
         JsonNode status = objectMapper.readTree("{\"400\":\"COMPLETED\"}");
         task.getInputData().put(HttpTask.HTTP_STATUS_OVERIDE_PARAMETER_NAME, status);
         HttpTask.HttpResponse response = new HttpTask.HttpResponse();

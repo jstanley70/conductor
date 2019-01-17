@@ -30,7 +30,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.commons.lang3.StringUtils;
-import org.ccctech.apigateway.conductor.tasks.CcctcHttpTask.HttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -188,16 +187,17 @@ public class HttpTask extends WorkflowSystemTask {
                 return;
             } else {
 			logger.info("response {}, {}", response.statusCode, response.body);
-			if(response.statusCode > 199 && response.statusCode < 300) {
-				task.setStatus(Status.COMPLETED);
-			} else {
-				if(response.body != null) {
-					task.setReasonForIncompletion(response.body.toString());
-				} else {
-					task.setReasonForIncompletion("No response from the remote service");
-				}
-				task.setStatus(Status.FAILED);
-			}
+    			if(response.statusCode > 199 && response.statusCode < 300) {
+    				task.setStatus(Status.COMPLETED);
+    			} else {
+    				if(response.body != null) {
+    					task.setReasonForIncompletion(response.body.toString());
+    				} else {
+    					task.setReasonForIncompletion("No response from the remote service");
+    				}
+    				task.setStatus(Status.FAILED);
+    			}
+            }
 			
 		}catch(Exception e) {
 			logger.error(String.format("Failed to invoke http task - uri: %s, vipAddress: %s", input.getUri(), input.getVipAddress()), e);
@@ -287,7 +287,7 @@ public class HttpTask extends WorkflowSystemTask {
 		}
 	}
 	
-    protected boolean handleOptionalResponse(Task task, HttpResponse response) {
+    public boolean handleOptionalResponse(Task task, HttpResponse response) {
         Object statusSupport = task.getInputData().get(HTTP_STATUS_OVERIDE_PARAMETER_NAME);
         Map<String, String> statusSupportValues = om.convertValue(statusSupport, HashMap.class);
         if (response != null) {
