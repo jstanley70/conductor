@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.commons.lang3.StringUtils;
+import org.ccctech.apigateway.conductor.tasks.CcctcHttpTask.HttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,15 +63,68 @@ import com.sun.jersey.oauth.signature.OAuthSecrets;
  * Use a decision tree task after completion to handle specific httpStatuses
  * input_Parameter:alternate_workflow can be used to indicated default workflow for httpStatuses that are invoked.
  */
+/**
+ * @author jstanley 
+ * 
+ * Task updateds to allow http statuses (>200 and > 299)
+ * to be handled with custom handlers.
+ * 
+ * Basic support remains the same to fail responses < 200 and > 299 (exactly the same
+ * as orginally designed) Setting http_status_override values overrides default
+ * failure for statuses outside the range.
+ * 
+ * If you desire additional support for any specific response code set
+ * map input_parameter:status_support, keys are httpStatuses and value
+ * is TaskStatus to be set. Use a decision tree task after completion to
+ * handle specific httpStatuses.
+ * 
+ * outputParameters now include httpStatus and overrideActivated where overrideActivated
+ * can be used to 
+ * 
+ * Example: erp task has type HTTP and sets http_status_support
+ *          to 404:COMPLETE, 409:COMPLETE. If 404 or 409 is the returned http_status then
+ *          overrideActivated is set to true. 
+ *          A DECISION Task can be used to handle each case with a 
+ *          unique following task/workflow. 
+ *          OR
+ *          Use the overrideActivated parameter to have all returned error conditions to
+ *          use the same task/workflow.
+ * 
+ * Example code:
+ * [
+ * {
+ *  "name": "http",
+ *  "taskReferenceName": "erp",
+ *     "type": "HTTP",
+ *     "inputParameters": {
+ *       "http_request": {
+ *         "method": "GET",
+ *         "accept": "application/json",
+ *         "contentType": aplication/json",
+ *         "headers": {
+ *           "Authorization": {
+ *           }
+ *         },
+ *         "uri": {
+ *           
+ *         }
+ *       },
+ *       "http_status_override": {
+ *         "404": "COMPLETED",
+ *         "409": "COMPLETED"
+ *       }
+ *     }
+ *   }
+ * ]
+*/
 @Singleton
 public class HttpTask extends WorkflowSystemTask {
 
 	public static final String REQUEST_PARAMETER_NAME = "http_request";
-	public static final String STATUS_SUPPORT_PARAMETER_NAME = "status_support";
-	public static final String ALTERNATE_WORK_FLOW_PARAMETER_NAME = "alternate_workflow";
+	public static final String HTTP_STATUS_OVERIDE_PARAMETER_NAME = "http_status_override";
 
 	
-	static final String MISSING_REQUEST = "Missing HTTP request. Task input MUST have a '" + REQUEST_PARAMETER_NAME + "' key wiht HttpTask.Input as value. See documentation for HttpTask for required input parameters";
+	static final String MISSING_REQUEST = "Missing HTTP request. Task input MUST have a '" + REQUEST_PARAMETER_NAME + "' key with HttpTask.Input as value. See documentation for HttpTask for required input parameters";
 
 	private static final Logger logger = LoggerFactory.getLogger(HttpTask.class);
 	
@@ -130,9 +184,9 @@ public class HttpTask extends WorkflowSystemTask {
 		try {
 			
 			HttpResponse response = httpCall(input);
-			if(responseHandeled(task, response)) {
-			     return;
-			}
+            if (handleOptionalResponse(task, response)) {
+                return;
+            } else {
 			logger.info("response {}, {}", response.statusCode, response.body);
 			if(response.statusCode > 199 && response.statusCode < 300) {
 				task.setStatus(Status.COMPLETED);
@@ -143,9 +197,6 @@ public class HttpTask extends WorkflowSystemTask {
 					task.setReasonForIncompletion("No response from the remote service");
 				}
 				task.setStatus(Status.FAILED);
-			}
-			if(response != null) {
-				task.getOutputData().put("response", response.asMap());
 			}
 			
 		}catch(Exception e) {
@@ -236,33 +287,24 @@ public class HttpTask extends WorkflowSystemTask {
 		}
 	}
 	
-	 /*** Handles Response based on specific supported httpStatusCodes
-	*  returns true if response has been handled.
-	*
-	* @param task
-	* @param statusSupportValues
-	* @param response
-	* @return
-	*/
-	
-	public boolean responseHandeled(Task task, HttpResponse response) {
-		Object statusSupport = task.getInputData().get(STATUS_SUPPORT_PARAMETER_NAME);
-		if(statusSupport == null)
-		    return false;
-		Map<String, String> statusSupportValues = om.convertValue(statusSupport, HashMap.class);
-		if (statusSupportValues.containsKey(Integer.toString(response.statusCode))) {
-			String values=statusSupportValues.get(Integer.toString(response.statusCode));
-			Status status = Status.valueOf(statusSupportValues.get(Integer.toString(response.statusCode)));
-			task.setStatus(status);
-			if (response != null) {
-				 task.getOutputData().put("response", response.asMap());
-			}
-			task.getOutputData().put("alternateWorkflow", (String)task.getInputData().get(ALTERNATE_WORK_FLOW_PARAMETER_NAME));
-			task.getOutputData().put("httpStatus", Integer.toString(response.statusCode));
-			return true;
-		}
-		return false;
-	}
+    protected boolean handleOptionalResponse(Task task, HttpResponse response) {
+        Object statusSupport = task.getInputData().get(HTTP_STATUS_OVERIDE_PARAMETER_NAME);
+        Map<String, String> statusSupportValues = om.convertValue(statusSupport, HashMap.class);
+        if (response != null) {
+            task.getOutputData().put("response", response.asMap());
+            task.getOutputData().put("httpStatus", Integer.toString(response.statusCode));
+            if(statusSupport != null) {
+                if (statusSupportValues.containsKey(Integer.toString(response.statusCode))) {
+                    Status status = Status.valueOf(statusSupportValues.get(Integer.toString(response.statusCode)));
+                    task.setStatus(status);
+                    task.getOutputData().put("overrideActivated", true);
+                    return true;
+                }
+            }
+            task.getOutputData().put("overrideActivated", false);
+        }
+        return false;
+    }
 
 	@Override
 	public boolean execute(Workflow workflow, Task task, WorkflowExecutor executor) throws Exception {

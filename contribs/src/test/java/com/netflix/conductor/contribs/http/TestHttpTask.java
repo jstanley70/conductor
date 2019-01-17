@@ -341,32 +341,30 @@ public class TestHttpTask {
 		assertEquals("Task output: " + task.getOutputData(), Status.COMPLETED, task.getStatus());
 	}
 
-        @Test
-        public void testRequestHandled() throws Exception {
-            Task task = new Task();
-            JsonNode status = objectMapper.readTree("{\"400\":\"COMPLETED\"}");
-            task.getInputData().put(HttpTask.STATUS_SUPPORT_PARAMETER_NAME, status);
-            task.getInputData().put(HttpTask.ALTERNATE_WORK_FLOW_PARAMETER_NAME, "test-task");
-            HttpTask.HttpResponse response = new HttpTask.HttpResponse();
-            response.statusCode = 400;
-            assertTrue("Should response handled be true", httpTask.responseHandeled(task, response));
-            assertEquals("Should task status set to COMPLETED", task.getStatus(),Status.COMPLETED);
-            assertEquals("Should task output contans alternateWorkflow test-task", task.getOutputData().get("alternateWorkflow"),"test-task");
-            assertEquals("Should task output contans httpStatus 400", task.getOutputData().get("httpStatus"),"400");
-        }
-        
-        @Test
-        public void testRequestNotHandled() throws Exception {
-            Task task = new Task();
-            JsonNode status = objectMapper.readTree("{\"400\":\"COMPLETED\"}");
-            task.getInputData().put(HttpTask.STATUS_SUPPORT_PARAMETER_NAME, status);
-            task.getInputData().put(HttpTask.ALTERNATE_WORK_FLOW_PARAMETER_NAME, "test-task");
-            HttpTask.HttpResponse response = new HttpTask.HttpResponse();
-            response.statusCode = 403;
-            assertFalse("Should response handled be false", httpTask.responseHandeled(task, response));
-            assertNull("Should task status set to null", task.getStatus());
-            assertFalse("Task output does not contains workflow", task.getOutputData().containsKey("alternateWorkflow"));
-        }
+ 	@Test
+    public void testRequestHandled() throws Exception {
+        Task task = new Task();
+        JsonNode status = objectMapper.readTree("{\"400\":\"COMPLETED\"}");
+        task.getInputData().put(HttpTask.HTTP_STATUS_OVERIDE_PARAMETER_NAME, status);
+        HttpTask.HttpResponse response = new HttpTask.HttpResponse();
+        response.statusCode = 400;
+        assertTrue("Should response handled be true", httpTask.handleOptionalResponse(task, response));
+        assertEquals("Should task status set to COMPLETED", task.getStatus(),Status.COMPLETED);
+        assertEquals("Should task output contans httpStatus 400", task.getOutputData().get("httpStatus"),"400");
+        assertTrue("Should response handled be true",(Boolean)task.getOutputData().get("overrideActivated"));
+    }
+    
+    @Test
+    public void testRequestNotHandled() throws Exception {
+        Task task = new Task();
+        JsonNode status = objectMapper.readTree("{\"400\":\"COMPLETED\"}");
+        task.getInputData().put(HttpTask.HTTP_STATUS_OVERIDE_PARAMETER_NAME, status);
+        HttpTask.HttpResponse response = new HttpTask.HttpResponse();
+        response.statusCode = 403;
+        assertFalse("Should response handled be false", httpTask.handleOptionalResponse(task, response));
+        assertNull("Should task status set to null", task.getStatus());
+        assertFalse("Should response handled be false",(Boolean)task.getOutputData().get("overrideActivated"));
+    }
 	
 	private static class EchoHandler extends AbstractHandler {
 
