@@ -65,7 +65,7 @@ import com.sun.jersey.oauth.signature.OAuthSecrets;
 /**
  * @author jstanley 
  * 
- * Task updateds to allow http statuses (>200 and > 299)
+ * Task updateds to allow http statuses (< 200 and > 299)
  * to be handled with custom handlers.
  * 
  * Basic support remains the same to fail responses < 200 and > 299 (exactly the same
