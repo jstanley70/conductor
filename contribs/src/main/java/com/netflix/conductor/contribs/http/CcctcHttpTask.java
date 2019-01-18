@@ -53,19 +53,9 @@ import com.sun.jersey.oauth.signature.OAuthParameters;
 import com.sun.jersey.oauth.signature.OAuthSecrets;
 
 /**
- * @author Viren
- * Task that enables calling another http endpoint as part of its execution
- * 
- * Basic support is to fail responses < 200 and > 299
- * If you desire additional support for any specific response code  
- * set map input_Parameter:status_support, keys are httpStatuses and value is TaskStatus to be set
- * Use a decision tree task after completion to handle specific httpStatuses
- * input_Parameter:alternate_workflow can be used to indicated default workflow for httpStatuses that are invoked.
- */
-/**
  * @author jstanley 
  * 
- * Task updateds to allow http statuses (< 200 and > 299)
+ * CcctcHttpTask updated to allow http statuses (< 200 and > 299)
  * to be handled with custom handlers.
  * 
  * Basic support remains the same to fail responses < 200 and > 299 (exactly the same
@@ -94,7 +84,7 @@ import com.sun.jersey.oauth.signature.OAuthSecrets;
  * {
  *  "name": "http",
  *  "taskReferenceName": "erp",
- *     "type": "HTTP",
+ *     "type": "CCCTC_HTTP",
  *     "inputParameters": {
  *       "http_request": {
  *         "method": "GET",
