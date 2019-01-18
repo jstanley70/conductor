@@ -21,7 +21,6 @@ package com.netflix.conductor.tests.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import org.junit.Ignore;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -81,7 +80,6 @@ public class End2EndTests {
 		wc.setRootURI("http://localhost:8080/api/");
 	}
 	
-
 	@Test
 	public void testAll() throws Exception {
 		assertNotNull(tc);
