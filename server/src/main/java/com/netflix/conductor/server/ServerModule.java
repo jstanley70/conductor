@@ -21,6 +21,7 @@ package com.netflix.conductor.server;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.conductor.contribs.http.HttpTask;
+import com.netflix.conductor.contribs.http.CcctcHttpTask;
 import com.netflix.conductor.contribs.http.RestClientManager;
 import com.netflix.conductor.contribs.json.JsonJqTransform;
 import com.netflix.conductor.core.config.Configuration;
@@ -93,6 +94,7 @@ public class ServerModule extends AbstractModule {
 		install(new JerseyModule());
 		
 		new HttpTask(new RestClientManager(), conductorConfig);
+		new CcctcHttpTask(new RestClientManager(), conductorConfig);
 		new JsonJqTransform();
 		
 		List<AbstractModule> additionalModules = conductorConfig.getAdditionalModules();
