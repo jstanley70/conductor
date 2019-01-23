@@ -161,7 +161,7 @@ public class CcctcHttpTask extends HttpTask {
             if (handleOptionalResponse(task, response)) {
                 return;
             } else {
-            logger.info("response {}, {}", response.statusCode, response.body);
+                logger.info("response {}, {}", response.statusCode, response.body);
                 if(response.statusCode > 199 && response.statusCode < 300) {
                     task.setStatus(Status.COMPLETED);
                 } else {
