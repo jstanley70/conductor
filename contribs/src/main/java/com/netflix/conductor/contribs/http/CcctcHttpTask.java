@@ -83,7 +83,7 @@ import com.sun.jersey.oauth.signature.OAuthSecrets;
  * [
  * {
  *  "name": "http",
- *  "taskReferenceName": "erp",
+ *  "taskReferenceName": "google-api",
  *     "type": "CCCTC_HTTP",
  *     "inputParameters": {
  *       "http_request": {
@@ -91,12 +91,9 @@ import com.sun.jersey.oauth.signature.OAuthSecrets;
  *         "accept": "application/json",
  *         "contentType": aplication/json",
  *         "headers": {
- *           "Authorization": {
- *           }
+ *           "Accept-Encoding": "gzip"
  *         },
- *         "uri": {
- *           
- *         }
+ *         "uri": "https://www.googleapis.com/discovery/v1/apis/not_an_api/2/rest?fields=name%2Cvalu"
  *       },
  *       "http_status_override": {
  *         "404": "COMPLETED",
